@@ -22,6 +22,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "assets": [
+      "./assets/fonts"
+    ],
+    "plugins": [
+      "expo-font"
+    ],
+    "extra":{
+      "API_KEY":"AIzaSyC4c9QB2EdgnmGzVkUhNmesEbO4xtMO4iI",
+      "API_URL":"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyC4c9QB2EdgnmGzVkUhNmesEbO4xtMO4iI"
     }
   }
 }
