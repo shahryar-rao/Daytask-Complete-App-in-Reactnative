@@ -27,6 +27,8 @@ export default function Home({ navigation }) {
     const [filteredCompletedData, setFilteredCompletedData] = useState([]);
     const [modalVisible, setModalVisible] = useState(false); // State for modal visibility
     const [filterOption, setFilterOption] = useState('');
+    const [companyName, setCompanyName] = useState(); // State for company name
+    const [isAdmin, setIsAdmin] = useState(false);
 
 
 
@@ -55,6 +57,20 @@ export default function Home({ navigation }) {
                     const docSnap = await getDoc(userDoc);
                     if (docSnap.exists()) {
                         setUser(docSnap.data());
+                        if (docSnap.data().role === 'admin') {
+                            setIsAdmin(true); // Set isAdmin to true if the user's role is admin
+                        }
+                        // Fetch company name
+                        const { companyId } = docSnap.data();
+                        if (companyId) {
+                            const companyDoc = doc(database, 'companies', companyId);
+                            const companySnap = await getDoc(companyDoc);
+                            if (companySnap.exists()) {
+                                setCompanyName(companySnap.data().name);
+                            } else {
+                                console.log('No such company document!');
+                            }
+                        }
                         setImageCacheBuster(Date.now());
                     } else {
                         console.log('No such document!');
@@ -76,8 +92,6 @@ export default function Home({ navigation }) {
         }, [])
     );
 
-
-    // Fetch tasks based on user task IDs
     const fetchTasks = useCallback(async () => {
         try {
             const currentUser = auth.currentUser;
@@ -300,6 +314,7 @@ export default function Home({ navigation }) {
                             <Text style={styles.welcome}>Welcome Back!</Text>
                             <Text style={styles.name}>{user.name}</Text>
                         </View>
+                        <Text style={styles.name1}>{companyName}</Text>
                         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
                             <Image
                                 source={user.avatar ? { uri: `${user.avatar}` } : require('../../assets/avatar.png')}
@@ -403,16 +418,16 @@ export default function Home({ navigation }) {
                     <TouchableOpacity style={styles.bottomicon}>
                         <View style={styles.bottombutton}>
                             <Image source={require('../../assets/home.png')} style={styles.home} />
-                            <Text style={{ color: '#FED36A' }}>Home</Text>
+                            <Text style={{ color: '#FED36A', fontSize: wp('3%'), fontWeight: '500' }}>Home</Text>
                         </View>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Messages')}>
                         <View style={styles.bottombutton}>
                             <Image source={require('../../assets/messages.png')} style={styles.home} />
-                            <Text style={{ color: '#617D8A' }}>Chat</Text>
+                            <Text style={{ color: '#617D8A', fontSize: wp('3%'), fontWeight: '500' }}>Chat</Text>
                         </View>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Addtask')}>
+                    <TouchableOpacity style={styles.bottomicon} onPress={isAdmin ?() => navigation.navigate('Addtask'):null}>
                         <View style={styles.bottombutton1}>
                             <Image source={require('../../assets/add.png')} style={styles.home} />
                         </View>
@@ -420,13 +435,13 @@ export default function Home({ navigation }) {
                     <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Schedule')}>
                         <View style={styles.bottombutton}>
                             <Image source={require('../../assets/calendar.png')} style={styles.home} />
-                            <Text style={{ color: '#617D8A' }}>Calendar</Text>
+                            <Text style={{ color: '#617D8A', fontSize: wp('3%'), fontWeight: '500' }}>Calendar</Text>
                         </View>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Notification')}>
                         <View style={styles.bottombutton}>
                             <Image source={require('../../assets/notification.png')} style={styles.home} />
-                            <Text style={{ color: '#617D8A' }}>Notification</Text>
+                            <Text style={{ color: '#617D8A', fontSize: wp('3%'), fontWeight: '500' }}>Notification</Text>
                         </View>
                     </TouchableOpacity>
                 </View>
@@ -466,7 +481,13 @@ const styles = StyleSheet.create({
     },
     name: {
         fontFamily: 'CustomFont',
-        fontSize: 22,
+        fontSize: wp('6%'),
+        fontWeight: '600',
+        color: '#fff',
+    },
+    name1: {
+        fontFamily: 'CustomFont',
+        fontSize: wp('4%'),
         fontWeight: '600',
         color: '#fff',
     },
@@ -688,15 +709,15 @@ const styles = StyleSheet.create({
         color: 'black',
         fontSize: 16,
     },
-    emptyText:{
-        color:'#fff',
-        fontSize:wp('4%'),
-        fontWeight:'600',
+    emptyText: {
+        color: '#fff',
+        fontSize: wp('4%'),
+        fontWeight: '600',
     },
-    emptyContainer:{
-        alignItems:'center',
+    emptyContainer: {
+        alignItems: 'center',
         // justifyContent:'center',
-        marginTop:hp('12%')
+        marginTop: hp('12%')
         // alignContent:'center',
     },
 });

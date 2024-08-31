@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
         width: wp('50%'),
         // height: hp('7%'),
         marginLeft: wp('4%'),
-        color: '#fff'
+        color: '#fff',
     },
     searchInput: {
         backgroundColor: '#263238',
@@ -729,12 +729,12 @@ const styles = StyleSheet.create({
         marginVertical: 5,
         borderRadius: 5,
         backgroundColor: '#FED36A',
-        width: wp('25%'),
+        width: wp('28%'),
         alignItems: 'center',
     },
     modalButtonText: {
         color: 'black',
-        fontSize: 16,
+        fontSize: wp('4%'),
     },
     avatar: {
         height: hp('4%'),

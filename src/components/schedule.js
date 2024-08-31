@@ -199,13 +199,13 @@ export default function Schedule({ navigation }) {
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Home')}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/home2.png')} style={styles.home} />
-                        <Text style={{ color: '#617D8A' }}>Home</Text>
+                        <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Home</Text>
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Messages')}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/messages.png')} style={styles.home} />
-                        <Text style={{ color: '#617D8A' }}>Chat</Text>
+                        <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Chat</Text>
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Addtask')}>
@@ -216,13 +216,13 @@ export default function Schedule({ navigation }) {
                 <TouchableOpacity style={styles.bottomicon}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/calendaryel.png')} style={styles.home} />
-                        <Text style={{ color: '#FED36A' }}>Calendar</Text>
+                        <Text style={{ color: '#FED36A',fontSize:wp('3%'),fontWeight:'500' }}>Calendar</Text>
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Notification')}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/notification.png')} style={styles.home} />
-                        <Text style={{ color: '#617D8A' }}>Notification</Text>
+                        <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Notification</Text>
                     </View>
                 </TouchableOpacity>
             </View>

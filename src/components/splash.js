@@ -83,14 +83,14 @@ const styles = StyleSheet.create({
     },
     text: {
         color: '#FFFFFF',
-        fontSize: wp('14%'),
+        fontSize: wp('12%'),
         fontWeight:'600',
         lineHeight:wp('15%'),
         fontFamily: 'CustomFont',
     },
     task:{
         color: '#FFFFFF',
-        fontSize: wp('14%'),
+        fontSize: wp('12%'),
         fontWeight:'600',
         lineHeight:wp('15%'),
         fontFamily: 'CustomFont',
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     },
     task1:{
         color: '#FED36A',
-        fontSize: wp('14%'),
+        fontSize: wp('12%'),
         fontWeight:'600',
         lineHeight:wp('15%'),
         fontFamily: 'CustomFont',

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import moment from 'moment';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { collection, addDoc, getDocs, setDoc, arrayUnion, Timestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, setDoc, arrayUnion, Timestamp, doc } from 'firebase/firestore';
 import { auth, storage, database } from '../../firebase';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { LogBox } from 'react-native';
@@ -26,6 +26,8 @@ export default function Addtask({ navigation }) {
     const [taskTitle, setTaskTitle] = useState('');
     const [taskDescription, setTaskDescription] = useState('');
     const [isLoading, setIsLoading] = useState(false); // State for loader
+    const [currentUserCompanyId, setCurrentUserCompanyId] = useState(null); // State to store current user's companyId
+
 
 
     const showTimePicker = () => {
@@ -73,6 +75,20 @@ export default function Addtask({ navigation }) {
         setIsLoading(true);
 
         try {
+            const currentUserUid = auth.currentUser.uid;
+
+            // Get the companyId from the current user's document
+            const userDocRef = doc(database, 'users', currentUserUid);
+            const userDoc = await getDoc(userDocRef);
+            const companyId = userDoc.data().companyId;
+
+            if (!companyId) {
+                Alert.alert("Error", "Company ID not found");
+                setIsLoading(false);
+                return;
+            }
+
+            // Create a new task
             const tasksCollection = collection(database, 'tasks');
             const newDocRef = doc(tasksCollection);
             await setDoc(newDocRef, {
@@ -80,26 +96,32 @@ export default function Addtask({ navigation }) {
                 title: taskTitle,
                 description: taskDescription,
                 progress: 0,
+                ownerId: currentUserUid, // Store the current user's ID as the ownerId
                 teamMembers: selectedUsers.map(user => ({
                     id: user.id,
                     name: user.name,
                     avatar: user.avatar,
                 })),
-                dateTime: Timestamp.fromDate(new Date(`${moment(selectedDate).format('YYYY-MM-DD')} ${moment(selectedTime).format('HH:mm:ss')}`))
+                dateTime: Timestamp.fromDate(new Date(`${moment(selectedDate).format('YYYY-MM-DD')} ${moment(selectedTime).format('HH:mm:ss')}`)),
+                companyId: companyId // Store the companyId in the task
             });
 
             // Update the taskId array in the users' documents
-            const currentUserUid = auth.currentUser.uid;
             const allUsers = [...selectedUsers, { id: currentUserUid }]; // Include current user
-
             const updateTasksForUsers = allUsers.map(async user => {
                 const userDocRef = doc(database, 'users', user.id);
                 await setDoc(userDocRef, {
-                    taskId: arrayUnion(newDocRef.id) // Add taskId to the user's taskId array
+                    taskId: arrayUnion(newDocRef.id) // Add taskId to the user's taskI
                 }, { merge: true });
             });
 
             await Promise.all(updateTasksForUsers);
+
+            // Update the company document to include the new task ID
+            const companyDocRef = doc(database, 'companies', companyId);
+            await setDoc(companyDocRef, {
+                taskId: arrayUnion(newDocRef.id) // Add the taskId to the company's taskId array
+            }, { merge: true });
 
             // Create the notification
             const notificationsCollection = collection(database, 'notifications');
@@ -123,7 +145,19 @@ export default function Addtask({ navigation }) {
 
 
 
+
     useEffect(() => {
+        const fetchCurrentUserCompanyId = async () => {
+            try {
+                const currentUserUid = auth.currentUser.uid;
+                const userDocRef = doc(database, 'users', currentUserUid);
+                const userDoc = await getDoc(userDocRef);
+                setCurrentUserCompanyId(userDoc.data().companyId);
+            } catch (error) {
+                console.error("Error fetching current user's companyId: ", error);
+            }
+        };
+
         const fetchUsers = async () => {
             try {
                 const usersCollection = collection(database, 'users');
@@ -138,6 +172,7 @@ export default function Addtask({ navigation }) {
             }
         };
 
+        fetchCurrentUserCompanyId();
         fetchUsers();
     }, []);
 
@@ -234,7 +269,10 @@ export default function Addtask({ navigation }) {
             >
                 <SafeAreaView style={styles.modalContainer}>
                     <FlatList
-                        data={users.sort((a, b) => a.name.localeCompare(b.name))} // Sort users alphabetically by name
+                        data={users
+                            .filter(user => user.companyId === currentUserCompanyId && user.id !== auth.currentUser.uid) // Filter by companyId and exclude current user
+                            .sort((a, b) => a.name.localeCompare(b.name)) // Sort users alphabetically by name
+                        } 
                         keyExtractor={(item) => item.id}
                         renderItem={({ item }) => (
                             <TouchableOpacity

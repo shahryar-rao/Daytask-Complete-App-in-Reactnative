@@ -14,13 +14,15 @@ export default {
       backgroundColor: "#ffffff"
     },
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      bundleIdentifier: "com.shahryar.DayTaskApp", // Replace this with your own package name
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
-      }
+      },
+      package: "com.shahryar.day_task_app", // Replace this with your own package name
     },
     web: {
       favicon: "./assets/favicon.png"
@@ -41,6 +43,9 @@ export default {
       measurementId: process.env.MEASUREMENT_ID,
       AI_API_KEY: process.env.AI_API_KEY,
       AI_API_URL: process.env.AI_API_URL,
+      eas: {
+        projectId: "c4bad84e-ff78-469d-a4c4-cb94f6f5c923",
+      },
     }
   }
 };

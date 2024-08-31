@@ -7,11 +7,15 @@ import {
     TouchableOpacity,
     TextInput,
     Alert,
-    ActivityIndicator
+    Modal,
+    Pressable,
+    ActivityIndicator,
+    ScrollView
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AntDesign } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import DropDownPicker from 'react-native-dropdown-picker';
 import {
@@ -57,14 +61,17 @@ const Profile = ({ navigation }) => {
     const [open, setOpen] = useState(null);
     const [value1, setValue1] = useState(null);
     const [value2, setValue2] = useState(null);
-    const [value3, setValue3] = useState(null);
     const [image, setImage] = useState(null);
     const [user, setUser] = useState(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [newName, setNewName] = useState('');
     const [isEditingPassword, setIsEditingPassword] = useState(false);
     const [newPassword, setNewPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(true); // State to manage loading
+    const [isLoading, setIsLoading] = useState(true);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [companyName, setCompanyName] = useState(''); // New state for company name
+
 
     const items1 = [
         { label: 'Option 1', value: 'option1' },
@@ -78,12 +85,6 @@ const Profile = ({ navigation }) => {
         { label: 'Choice 3', value: 'choice3' },
     ];
 
-    const items3 = [
-        { label: 'Selection 1', value: 'selection1' },
-        { label: 'Selection 2', value: 'selection2' },
-        { label: 'Selection 3', value: 'selection3' },
-    ];
-
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -92,9 +93,21 @@ const Profile = ({ navigation }) => {
                     const userDoc = doc(database, 'users', currentUser.uid);
                     const docSnap = await getDoc(userDoc);
                     if (docSnap.exists()) {
-                        setUser(docSnap.data());
-                        if (docSnap.data().avatar) {
-                            setImage(docSnap.data().avatar);
+                        const userData = docSnap.data();
+                        setUser(userData);
+                        if (userData.avatar) {
+                            setImage(userData.avatar);
+                        }
+                        if (userData.role === 'admin') {
+                            setIsAdmin(true); // Set isAdmin to true if the user's role is admin
+                        }
+                        // Fetch company name
+                        if (userData.companyId) {
+                            const companyDoc = doc(database, 'companies', userData.companyId);
+                            const companySnap = await getDoc(companyDoc);
+                            if (companySnap.exists()) {
+                                setCompanyName(companySnap.data().name);
+                            }
                         }
                     }
                 }
@@ -133,16 +146,7 @@ const Profile = ({ navigation }) => {
 
         const userDoc = doc(database, 'users', userId);
         await updateDoc(userDoc, { avatar: downloadURL });
-
-
-
-
     };
-
-
-
-
-
 
 
     const handleLogout = async () => {
@@ -157,27 +161,27 @@ const Profile = ({ navigation }) => {
                 Alert.alert('Error', 'User not authenticated');
                 return;
             }
-    
+
             const userDoc = doc(database, 'users', user.uid);
-    
+
             // Update name if in editing mode and name is not empty
             if (isEditingName && newName.trim() !== '') {
                 await updateDoc(userDoc, { name: newName });
                 await updateProfile(user, { displayName: newName });
                 setUser(prevUser => ({ ...prevUser, name: newName }));
             }
-    
+
             // Update password if in editing mode and password is not empty
             if (isEditingPassword && newPassword.trim() !== '') {
                 await updatePassword(user, newPassword);
             }
-    
+
             // Navigate back to Home screen after saving changes
             navigation.navigate('Home');
         } catch (error) {
             // Log the error to debug
             console.error('Error updating profile:', error);
-    
+
             // Handle specific error cases
             if (error.code === 'auth/weak-password') {
                 Alert.alert('Error', 'Password is too weak');
@@ -218,7 +222,13 @@ const Profile = ({ navigation }) => {
                     </View>
                 </TouchableOpacity>
             </View>
-            <View style={{  marginTop:hp('5%'), width: '100%' }}>
+            <View style={{ marginTop: hp('0%'), width: '100%' }}>
+                <View style={styles.buttons}>
+                    <SimpleLineIcons name="organization" size={24} color="#8CAAB9" style={styles.logos} />
+                    <Text style={styles.text}>{companyName}</Text>
+                    <TouchableOpacity style={styles.editButton}>
+                    </TouchableOpacity>
+                </View>
                 <View style={styles.buttons}>
                     <Image source={require('../../assets/useradd.png')} style={styles.logos} />
                     {isEditingName ? (
@@ -287,21 +297,56 @@ const Profile = ({ navigation }) => {
                     setValue={setValue2}
                     zIndex={900}
                 />
-                <DropdownButton
-                    label="Settings"
-                    iconsource={require('../../assets/setting.png')}
-                    items={items3}
-                    open={open}
-                    setOpen={setOpen}
-                    value={value3}
-                    setValue={setValue3}
-                    zIndex={800}
-                />
+                <View style={styles.buttons}>
+                    <Image source={require('../../assets/setting.png')} style={styles.logos} />
+                    <Text style={styles.text}>Settings</Text>
+                    <TouchableOpacity style={styles.editButton} onPress={isAdmin ? () => setModalVisible(true) : null}>
+                        <Image source={require('../../assets/arrowdown2.png')} />
+                    </TouchableOpacity>
+                </View>
             </View>
             <TouchableOpacity style={styles.button} onPress={handleLogout}>
                 <Image source={require('../../assets/logout.png')} style={{ right: 10 }} />
                 <Text style={styles.buttontext}>Logout</Text>
             </TouchableOpacity>
+
+            <Modal
+                visible={modalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
+                    <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+                        <Pressable
+                            style={styles.modalButton}
+                            onPress={async () => {
+                                setModalVisible(false);
+                                navigation.navigate('UserSignup');
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>Create New User</Text>
+                        </Pressable>
+                        <Pressable
+                            style={styles.modalButton}
+                            onPress={() => {
+                                setModalVisible(false);
+                                navigation.navigate('CompanyInfoView');
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>Show Company Info</Text>
+                        </Pressable>
+                        <Pressable
+                            style={styles.modalButton}
+                            onPress={() => {
+                                setModalVisible(false);
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>Option 3</Text>
+                        </Pressable>
+                    </ScrollView>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -325,7 +370,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         // top: 150,
-        marginTop:hp('5%'),
+        marginTop: hp('5%'),
         flexDirection: 'row',
     },
     profilecontainer: {
@@ -333,7 +378,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         // top: 20,
-        marginTop:hp('2%'),
+        marginTop: hp('2%'),
 
     },
     header: {
@@ -344,7 +389,7 @@ const styles = StyleSheet.create({
     imagepickcontainer: {
         height: 133,
         width: 133,
-        marginTop:hp('5%'),
+        marginTop: hp('5%'),
 
         // top: 80,
     },
@@ -355,7 +400,7 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#FED36A',
         padding: 2,
-        
+
     },
     image: {
         width: 126,
@@ -384,7 +429,7 @@ const styles = StyleSheet.create({
         marginTop: hp('2%'),
     },
     logos: {
-        height: 24,
+        height: 25,
         width: 24,
         alignSelf: 'flex-start',
     },
@@ -400,7 +445,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 14,
         // top: 10,
-        marginTop:hp('1.5%'),
+        marginTop: hp('1.5%'),
 
     },
     dropdown: {
@@ -408,7 +453,7 @@ const styles = StyleSheet.create({
     },
     dropdownContainer: {
         width: '70%',
-        // top: 30,
+        top: 50,
         right: 0,
         position: 'absolute',
     },
@@ -429,7 +474,7 @@ const styles = StyleSheet.create({
         padding: 3,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal:wp('2%'),
+        paddingHorizontal: wp('2%'),
     },
     saveButtonText: {
         color: '#000',
@@ -440,7 +485,45 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#212832',
-    }
+    },
+    modalOverlay: {
+        flex: 1,
+        // alignSelf:'flex-end',
+        // justifyContent: 'center',
+        // alignItems: 'center',
+        // backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalContent: {
+        backgroundColor: '#212832',
+        shadowColor: '#fff',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+        borderRadius: 10,
+        paddingHorizontal: wp('4%'),
+        // paddingVertical: hp('1%'),
+        width: '75%',
+        height: hp('15%'),
+        // alignItems: 'center',
+        bottom: hp('4%'),
+        marginRight: wp('6%'),
+        right: wp('4%'),
+        position: 'absolute',
+    },
+    modalButton: {
+        padding: 10,
+        marginVertical: 5,
+        borderRadius: 5,
+        backgroundColor: '#455A64',
+        // width: wp('28%'),
+        alignItems: 'center',
+        marginVertical: hp('1%'),
+    },
+    modalButtonText: {
+        color: 'white',
+        fontSize: wp('4%'),
+    },
 });
 
 export default Profile;

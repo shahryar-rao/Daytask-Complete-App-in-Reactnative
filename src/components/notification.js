@@ -156,13 +156,13 @@ export default function Notification({ navigation }) {
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Home')}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/home2.png')} style={styles.home} />
-                        <Text style={{ color: '#617D8A' }}>Home</Text>
+                        <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Home</Text>
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Messages')}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/messages.png')} style={styles.home} />
-                        <Text style={{ color: '#617D8A' }}>Chat</Text>
+                        <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Chat</Text>
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Addtask')}>
@@ -173,13 +173,13 @@ export default function Notification({ navigation }) {
                 <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Schedule')}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/calendar.png')} style={styles.home} />
-                        <Text style={{ color: '#617D8A' }}>Calendar</Text>
+                        <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Calendar</Text>
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.bottomicon}>
                     <View style={styles.bottombutton}>
                         <Image source={require('../../assets/notification1.png')} style={styles.home} />
-                        <Text style={{ color: '#FED36A' }}>Notification</Text>
+                        <Text style={{ color: '#FED36A',fontSize:wp('3%'),fontWeight:'500' }}>Notification</Text>
                     </View>
                 </TouchableOpacity>
             </View>
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     },
     namecont: {
         flexDirection: 'column',
-        marginRight: wp('25%'),
+        marginLeft: wp('-20%'),
     },
     name: {
         fontSize: hp('2%'),

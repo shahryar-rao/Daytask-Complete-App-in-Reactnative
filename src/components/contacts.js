@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, TouchableWithoutFeedback, Keyboard, TextInput, FlatList, Alert, ActivityIndicator } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { collection, getDocs, addDoc, updateDoc, doc, arrayUnion, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc,getDoc, updateDoc, doc, arrayUnion, writeBatch } from 'firebase/firestore';
 import { database, auth } from '../../firebase';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import * as Animatable from 'react-native-animatable';
@@ -14,8 +14,23 @@ export default function Contacts({ navigation }) {
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [groupName, setGroupName] = useState('');
     const [showGroupForm, setShowGroupForm] = useState(false);
+    const [currentUserCompanyId, setCurrentUserCompanyId] = useState(null);
+
 
     const currentUserId = auth.currentUser?.uid;
+
+    const fetchCurrentUserCompanyId = async () => {
+        try {
+            const userDocRef = doc(database, 'users', currentUserId);
+            const userDoc = await getDoc(userDocRef);
+            const companyId = userDoc.data().companyId;
+            setCurrentUserCompanyId(companyId);
+            console.log(companyId);
+            
+        } catch (error) {
+            Alert.alert('Error', 'Failed to fetch current user data');
+        }
+    };
 
     const fetchUsers = async () => {
         try {
@@ -24,8 +39,10 @@ export default function Contacts({ navigation }) {
             let usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             // Filter out the current user
-            if (currentUserId) {
-                usersList = usersList.filter(user => user.id !== currentUserId);
+            if (currentUserId && currentUserCompanyId) {
+                usersList = usersList.filter(user => 
+                    user.id !== currentUserId && user.companyId === currentUserCompanyId
+                );
             }
 
             setUsers(usersList);
@@ -37,8 +54,14 @@ export default function Contacts({ navigation }) {
     };
 
     useEffect(() => {
-        fetchUsers();
+        fetchCurrentUserCompanyId();
     }, []);
+
+    useEffect(() => {
+        if (currentUserCompanyId) {
+            fetchUsers();
+        }
+    }, [currentUserCompanyId]);
 
     const defaultAvatar = require('../../assets/avatar.png');
 

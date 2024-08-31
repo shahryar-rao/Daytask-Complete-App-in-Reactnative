@@ -19,7 +19,9 @@ import Groups from './src/components/groups';
 import Schedule from './src/components/schedule';
 import Notification from './src/components/notification';
 import useUpdateLastActive from './src/components/helpers/trackactivity';
-
+import UserSignup from './src/components/userSignup';
+import CompanyInfo from './src/components/Company';
+import CompanyInfoView from './src/components/companyinfo';
 
 
 
@@ -34,6 +36,7 @@ export default function App() {
         <Stack.Screen name="Splashscreen" component={Splashscreen} />
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Signup" component={Signup} />
+        <Stack.Screen name="UserSignup" component={UserSignup} />
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="ForgotPass" component={ForgotPass} />
         <Stack.Screen name="Profile" component={Profile} />
@@ -47,8 +50,8 @@ export default function App() {
         <Stack.Screen name="Groups" component={Groups} />
         <Stack.Screen name="Schedule" component={Schedule} />
         <Stack.Screen name="Notification" component={Notification} />
-
-
+        <Stack.Screen name="CompanyInfo" component={CompanyInfo} />
+        <Stack.Screen name="CompanyInfoView" component={CompanyInfoView} />
 
 
 

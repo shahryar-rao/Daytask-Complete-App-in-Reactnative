@@ -3,15 +3,17 @@ import { StyleSheet, Text, View, Image, Dimensions, TouchableOpacity, TextInput,
 import { Entypo } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Checkbox from 'expo-checkbox';
-import { auth, createUserWithEmailAndPassword } from '../../firebase';
+import { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from '../../firebase';
 import { database } from '../../firebase';
-import { collection, doc, setDoc } from '@firebase/firestore';
+import { collection, doc, setDoc,getDoc } from '@firebase/firestore';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { AntDesign } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
 
-export default function Signup({ navigation }) {
+export default function UserSignup({ navigation }) {
 
     const [isPasswordVisible, setPasswordVisibility] = useState(false);
     const [isChecked, setChecked] = useState(false);
@@ -32,35 +34,79 @@ export default function Signup({ navigation }) {
 
 
 
+const signup = async (emaill, password) => {
+    setLoading(true);
+    try {
+        const currentUser = auth.currentUser;
+        let companyId = null;
 
-    const signup = async (emaill, password) => {
-        setLoading(true);
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, emaill, password);
-            const usercollection = collection(database, 'users');
-            if (userCredential) {
-                const userdoc = doc(usercollection, userCredential.user.uid)
-                await setDoc(userdoc, {
-                    uid: userCredential.user.uid,
-                    name: name,
-                    email: email,
-                    role: 'admin',
-                    hasSeenCompanyInfo:false,
-                    avatar:'https://firebasestorage.googleapis.com/v0/b/daytask-bab6c.appspot.com/o/avatar.png?alt=media&token=98d73b78-ac02-45bf-aa67-8884da63b0ef',
-                });
-                setModalTitle('Success');
-                setModalMessage('Account Successfully Created');
-                setModalVisible(true);
+        if (currentUser) {
+            const currentUserDoc = doc(database, 'users', currentUser.uid);
+            const currentUserSnapshot = await getDoc(currentUserDoc);
+            if (currentUserSnapshot.exists()) {
+                companyId = currentUserSnapshot.data().companyId;
             }
-        } catch (error) {
-            setModalTitle('Error');
-            setModalMessage('The email address is already in use by another account.');
-            setModalVisible(true);
-            console.log("Firebase Error:", error);
-        } finally {
-            setLoading(false);
         }
-    };
+
+        // Create the new user account
+        const userCredential = await createUserWithEmailAndPassword(auth, emaill, password);
+        const usercollection = collection(database, 'users');
+
+        if (userCredential) {
+            const userdoc = doc(usercollection, userCredential.user.uid);
+            await setDoc(userdoc, {
+                uid: userCredential.user.uid,
+                name: name,
+                email: email,
+                role: 'user',
+                avatar: 'https://firebasestorage.googleapis.com/v0/b/daytask-bab6c.appspot.com/o/avatar.png?alt=media&token=98d73b78-ac02-45bf-aa67-8884da63b0ef',
+                companyId: companyId, // Store the companyId
+            });
+
+            if (companyId) {
+                const companyDocRef = doc(database, 'companies', companyId);
+                const companyDocSnapshot = await getDoc(companyDocRef);
+
+                if (companyDocSnapshot.exists()) {
+                    const companyData = companyDocSnapshot.data();
+                    const usersArray = companyData.users || []; // Get existing users array or initialize a new one
+
+                    // Add the new user's ID to the array
+                    usersArray.push(userCredential.user.uid);
+
+                    // Update the company document with the new users array
+                    await setDoc(companyDocRef, { users: usersArray }, { merge: true });
+                }
+            }
+
+            // Sign out the new user
+            await auth.signOut();
+
+            // Retrieve stored credentials from AsyncStorage
+            const storedEmail = await AsyncStorage.getItem('userEmail');
+            const storedPassword = await AsyncStorage.getItem('userPassword');
+
+            // Log in with the stored credentials if they exist
+            if (storedEmail && storedPassword) {
+                await signInWithEmailAndPassword(auth,storedEmail, storedPassword);
+            }
+
+            setModalTitle('Success');
+            setModalMessage('Account Successfully Created');
+            setModalVisible(true);
+        }
+    } catch (error) {
+        setModalTitle('Error');
+        setModalMessage('The email address is already in use by another account.');
+        setModalVisible(true);
+        console.log("Firebase Error:", error);
+    } finally {
+        setLoading(false);
+    }
+};
+
+    
+    
 
     const handleInputChange = (setter, errorSetter, value) => {
         setter(value);
@@ -119,7 +165,6 @@ export default function Signup({ navigation }) {
     const closeModal = () => {
         setModalVisible(false);
         if (modalTitle === 'Success') {
-            navigation.navigate('Login');
         }
     };
 
@@ -129,14 +174,18 @@ export default function Signup({ navigation }) {
 
     return (
         <SafeAreaView style={styles.container}>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')} 
+            style={{alignSelf:'flex-start',marginLeft:wp('5%'),marginTop:hp('3%')}}>
+                <AntDesign name="arrowleft" size={24} color="white" />
+            </TouchableOpacity>
             <View style={styles.logocontainer}>
                 <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="stretch" />
             </View>
             <View style={styles.content}>
                 <Text style={styles.welcome}>
-                    Create Company Owner Account
+                    Create Company User Account
                 </Text>
-                <Text style={[styles.label, nameerror && styles.labelError]}>Owner Full Name</Text>
+                <Text style={[styles.label, nameerror && styles.labelError]}>User Full Name</Text>
                 <View style={styles.inputcontainer}>
                     <Image source={require('../../assets/user.png')} style={styles.usertag} />
                     <TextInput
@@ -150,7 +199,7 @@ export default function Signup({ navigation }) {
                 </View>
                 {nameerror && <Text style={styles.errorText}>{nameerror}</Text>}
 
-                <Text style={[styles.label, emailerror && styles.labelError,]}>Email Address</Text>
+                <Text style={[styles.label, emailerror && styles.labelError,]}>User Email Address</Text>
                 <View style={styles.inputcontainer}>
                     <Image source={require('../../assets/usertag.png')} style={styles.usertag} />
                     <TextInput
@@ -195,29 +244,15 @@ export default function Signup({ navigation }) {
                     />
                     <Text style={styles.checkboxLabel}>I have read & agreed to DayTask </Text>
                     <TouchableOpacity >
-                        <Text style={{ color: '#FED36A',fontSize: wp('3.7%'), }}> Privacy Policy,</Text>
+                        <Text style={{ color: '#FED36A', fontSize: wp('3.7%'), }}> Privacy Policy,</Text>
                     </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={{ marginTop: hp('1.7%'), marginLeft:wp('9%'), }}>
-                    <Text style={{ color: '#FED36A',fontSize: wp('3.7%'), }}>Terms & Condition</Text></TouchableOpacity>
+                <TouchableOpacity style={{ marginTop: hp('1.7%'), marginLeft: wp('9%'), }}>
+                    <Text style={{ color: '#FED36A', fontSize: wp('3.7%'), }}>Terms & Condition</Text></TouchableOpacity>
                 <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                    <Text style={styles.buttontext}>Sign Up</Text>
+                    <Text style={styles.buttontext}>Create User</Text>
                 </TouchableOpacity>
-                <View style={styles.Orcontainer}>
-                    <View style={styles.line}></View>
-                    <Text style={{ color: '#8CAAB9', marginHorizontal: wp('2.7%'), fontWeight: '600', fontSize: wp('4%'), }}> Or continue with</Text>
-                    <View style={styles.line}></View>
-                </View>
-                <TouchableOpacity style={styles.button1} >
-                    <Image source={require('../../assets/google.png')} style={{ height: hp('2.6%'), width:wp('5%'), marginRight: 10, }} />
-                    <Text style={styles.buttontext1}>Google</Text>
-                </TouchableOpacity>
-                <View style={styles.dontcontainer}>
-                    <Text style={styles.account}>Don’t have an account? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                        <Text style={styles.signup}>Log In</Text>
-                    </TouchableOpacity>
-                </View>
+
                 {loading &&
                     <View style={styles.loaderContainer}>
                         <ActivityIndicator size="large" color="#FED36A" />
@@ -264,7 +299,7 @@ const styles = StyleSheet.create({
         height: '80%',
         width: '100%',
         padding: 20,
-        marginTop: hp('2.5%')
+        marginTop: hp('6%')
     },
     welcome: {
         color: '#fff',
@@ -329,7 +364,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: 'white',
-        marginTop:hp('3%')
+        marginTop: hp('3%')
     },
     Orcontainer: {
         marginTop: ('10%'),

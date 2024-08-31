@@ -3,7 +3,10 @@ import { StyleSheet, Text, View, Image, Dimensions, TouchableOpacity, TextInput,
 import { Entypo } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, signInWithEmailAndPassword, } from '../../firebase';
+import { collection, getDocs,getDoc,doc,updateDoc, query, where, orderBy, limit } from 'firebase/firestore';
+import { database} from '../../firebase';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
@@ -33,24 +36,68 @@ export default function Login({ navigation }) {
             setModalVisible(true);
         }
         return null;
-    }
+    };
 
-
+    const storeCredentials = async (email, password) => {
+        try {
+            await AsyncStorage.setItem('userEmail', email);
+            await AsyncStorage.setItem('userPassword', password);
+        } catch (error) {
+            console.log('Failed to save the credentials:', error);
+        }
+    };
 
     const handleLogin = async () => {
-        console.log('Email:', email);
-        console.log('Password:', password);
-
+        console.log('Starting login process');
+        const startTime = Date.now();
+    
         try {
             const userCredential = await login(email, password);
+    
+            const currentUserId = auth.currentUser;
             if (userCredential != null) {
-                navigation.navigate('Home');
+                const userId = currentUserId.uid;
+                const DocRef = doc(database, 'users', userId);
+                const userDoc = await getDoc(DocRef);
+    
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    const userRole = userData.role;
+    
+                    if (userRole === 'admin') {
+                        if (userData.hasSeenCompanyInfo) {
+                            navigation.navigate('Home');
+                        } else {
+                            navigation.navigate('CompanyInfo');
+                            await updateDoc(DocRef, {
+                                hasSeenCompanyInfo: true
+                            });
+                        }
+                    } else if (userRole === 'user') {
+                        navigation.navigate('Home');
+                    } else {
+                        setModalTitle('Error');
+                        setModalMessage('Unknown user role');
+                        setModalVisible(true);
+                    }
+                } else {
+                    setModalTitle('Error');
+                    setModalMessage('User document not found');
+                    setModalVisible(true);
+                }
+                await storeCredentials(email, password);
             }
         } catch (error) {
-            console.log(error);
+            console.log('Error:', error);
+            setModalTitle('Error');
+            setModalMessage('Failed to log in');
+            setModalVisible(true);
         }
-
+    
     };
+    
+    
+    
     const closeModal = () => {
         setModalVisible(false);
     };
