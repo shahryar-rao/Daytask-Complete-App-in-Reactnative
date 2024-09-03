@@ -182,7 +182,8 @@ export default function Contacts({ navigation }) {
                     <Text style={styles.selected}>Selected</Text>
                 )}
             </View>
-        </TouchableOpacity>
+            {item.role === 'admin' && <Text style={styles.admin}>Admin</Text>}
+            </TouchableOpacity>
     );
 
     const renderGroup = ({ item }) => (
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     namecont: {
         flexDirection: 'column',
         marginLeft: wp('4%'),
-        width: wp('68%'),
+        width: wp('65%'),
         height: hp('6%'),
         justifyContent: 'center',
     },
@@ -352,4 +353,9 @@ const styles = StyleSheet.create({
         fontWeight:'600',
         fontSize:hp('2%'),
     },
+    admin:{
+        fontSize:wp('2%'),
+        color:'green',
+        // marginRight:wp('10%'),
+    }
 });

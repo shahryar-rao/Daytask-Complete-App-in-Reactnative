@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, FlatList, Modal, Touch
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '@expo/vector-icons/Feather';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs,doc , query,getDoc,where } from 'firebase/firestore';
 import { database, auth } from '../../firebase';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,6 +19,7 @@ export default function Schedule({ navigation }) {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [modalVisible, setModalVisible] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date().getDate());
     const [tasks, setTasks] = useState([]);
     const [filteredTask, setFilteredTask] = useState([]);
@@ -32,40 +33,51 @@ export default function Schedule({ navigation }) {
 
     const flatListRef = useRef(null);
 
+
     const fetchTasks = useCallback(async () => {
         const currentUser = auth.currentUser;
     
         if (currentUser) {
             try {
-                const tasksCollection = collection(database, 'tasks');
-                const tasksSnapshot = await getDocs(tasksCollection);
-                const tasksList = tasksSnapshot.docs.map(doc => {
-                    const taskData = doc.data();
-                    const dateTime = taskData.dateTime;
+                // Get the current user's document
+                const userDocRef = doc(database, 'users', currentUser.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.data().role === 'admin') {
+                    setIsAdmin(true); // Set isAdmin to true if the user's role is admin
+                }
     
-                    const formattedDate = dateTime ? dateTime.toDate() : null;
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const taskIds = userData.taskId || []; // Get the taskId array
     
-                    // Check if the current user is part of the task's team members
-                    const isCurrentUserAdded = taskData.teamMembers?.some(
-                        member => member.id === currentUser.uid
-                    );
+                    if (taskIds.length > 0) {
+                        // Query the tasks collection to get the tasks with the corresponding taskIds
+                        const tasksCollection = collection(database, 'tasks');
+                        const tasksQuery = query(tasksCollection, where('tid', 'in', taskIds));
     
-                    // Only return tasks where the current user is added
-                    if (isCurrentUserAdded) {
-                        return {
-                            id: doc.id,
-                            ...taskData,
-                            date: formattedDate,
-                        };
+                        const tasksSnapshot = await getDocs(tasksQuery);
+                        const tasksList = tasksSnapshot.docs.map(doc => {
+                            const taskData = doc.data();
+                            const dateTime = taskData.dateTime;
+    
+                            const formattedDate = dateTime ? dateTime.toDate() : null;
+    
+                            return {
+                                id: doc.id,
+                                ...taskData,
+                                date: formattedDate,
+                            };
+                        });
+    
+                        setTasks(tasksList);
                     }
-                }).filter(task => task !== undefined); // Filter out undefined tasks
-    
-                setTasks(tasksList);
+                }
             } catch (error) {
                 console.error('Error fetching tasks:', error);
             }
         }
     }, []);
+    
     
 
     useFocusEffect(
@@ -208,7 +220,7 @@ export default function Schedule({ navigation }) {
                         <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Chat</Text>
                     </View>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Addtask')}>
+                <TouchableOpacity style={styles.bottomicon} onPress={isAdmin ?() => navigation.navigate('Addtask'):null}>
                     <View style={styles.bottombutton1}>
                         <Image source={require('../../assets/add.png')} style={styles.home} />
                     </View>

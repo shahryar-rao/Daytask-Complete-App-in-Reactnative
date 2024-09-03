@@ -15,6 +15,8 @@ export default function Messages({ navigation }) {
     const [friends, setFriends] = useState([]);
     const [loading, setLoading] = useState(true);
     const [update, setUpdate] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
 
     const currentUser = auth.currentUser;
 
@@ -44,6 +46,9 @@ export default function Messages({ navigation }) {
         try {
             const userDocRef = doc(database, 'users', currentUser.uid);
             const userDoc = await getDoc(userDocRef);
+            if (userDoc.data().role === 'admin') {
+                setIsAdmin(true); // Set isAdmin to true if the user's role is admin
+            }
     
             if (userDoc.exists()) {
                 const userData = userDoc.data();
@@ -260,7 +265,7 @@ export default function Messages({ navigation }) {
                         <Text style={{ color: '#FED36A',fontSize:wp('3%'),fontWeight:'500' }}>Chat</Text>
                     </View>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Addtask')}>
+                <TouchableOpacity style={styles.bottomicon} onPress={isAdmin ?() => navigation.navigate('Addtask'):null}>
                     <View style={styles.bottombutton1}>
                         <Image source={require('../../assets/add.png')} style={styles.home} />
                     </View>

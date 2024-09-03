@@ -10,11 +10,19 @@ import moment from 'moment';
 export default function Notification({ navigation }) {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
+
 
     useEffect(() => {
         const currentUserId = auth.currentUser.uid;
-
+        
+        
         const fetchNotifications = async () => {
+            const userDoc = doc(database, 'users', currentUserId);
+            const docSnap = await getDoc(userDoc);
+            if (docSnap.data().role === 'admin') {
+                setIsAdmin(true); // Set isAdmin to true if the user's role is admin
+            }
             try {
                 const notificationRef = collection(database, 'notifications');
                 const notificationSnapshot = await getDocs(notificationRef);
@@ -165,7 +173,7 @@ export default function Notification({ navigation }) {
                         <Text style={{ color: '#617D8A',fontSize:wp('3%'),fontWeight:'500' }}>Chat</Text>
                     </View>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Addtask')}>
+                <TouchableOpacity style={styles.bottomicon} onPress={isAdmin ?() => navigation.navigate('Addtask'):null}>
                     <View style={styles.bottombutton1}>
                         <Image source={require('../../assets/add.png')} style={styles.home} />
                     </View>

@@ -12,6 +12,8 @@ import { useFocusEffect } from '@react-navigation/native';
 export default function Groups({ navigation }) {
     const [groups, setGroups] = useState([]);
     const [userGroupIds, setUserGroupIds] = useState([]);
+    const [isAdmin, setIsAdmin] = useState(false);
+
 
     const currentUser = auth.currentUser;
     
@@ -21,7 +23,10 @@ export default function Groups({ navigation }) {
             // Replace 'currentUserId' with the actual ID or method to get the current user ID
             const userId = currentUser.uid; 
             const DocRef = doc(database, 'users', userId);
-            const userDoc = await getDoc(DocRef);            
+            const userDoc = await getDoc(DocRef);
+            if (userDoc.data().role === 'admin') {
+                setIsAdmin(true); // Set isAdmin to true if the user's role is admin
+            }
             if (userDoc.exists) {
                 const userData = userDoc.data();
                 setUserGroupIds(userData.groupid || []);
@@ -171,7 +176,7 @@ export default function Groups({ navigation }) {
                         <Text style={{ color: '#FED36A',fontSize:wp('3%'),fontWeight:'500' }}>Chat</Text>
                     </View>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bottomicon} onPress={() => navigation.navigate('Addtask')}>
+                <TouchableOpacity style={styles.bottomicon} onPress={isAdmin ?() => navigation.navigate('Addtask'):null}>
                     <View style={styles.bottombutton1}>
                         <Image source={require('../../assets/add.png')} style={styles.home} />
                     </View>

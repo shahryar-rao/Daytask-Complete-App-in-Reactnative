@@ -10,7 +10,7 @@ import CircularProgress from 'react-native-circular-progress-indicator';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { Timestamp } from 'firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
-
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 
 
 
@@ -29,6 +29,7 @@ export default function Home({ navigation }) {
     const [filterOption, setFilterOption] = useState('');
     const [companyName, setCompanyName] = useState(); // State for company name
     const [isAdmin, setIsAdmin] = useState(false);
+    const [loading, setLoading] = useState(false);
 
 
 
@@ -152,6 +153,15 @@ export default function Home({ navigation }) {
     }, [auth.currentUser]);
 
 
+
+    // Function to refresh the screen
+    const handleRefresh = async () => {
+        setLoading(true); // Set loading to true when refresh starts
+        await fetchTasks();
+        setLoading(false); // Set loading to false once data is fetched
+    };
+    
+    
 
 
 
@@ -315,12 +325,17 @@ export default function Home({ navigation }) {
                             <Text style={styles.name}>{user.name}</Text>
                         </View>
                         <Text style={styles.name1}>{companyName}</Text>
+                        <View style={{flexDirection:'row'}}>
+                        <TouchableOpacity style={styles.refresh} onPress={handleRefresh}>
+                        <FontAwesome name="refresh" size={24} color="white" />
+                        </TouchableOpacity>
                         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
                             <Image
                                 source={user.avatar ? { uri: `${user.avatar}` } : require('../../assets/avatar.png')}
                                 style={styles.avatar}
                             />
                         </TouchableOpacity>
+                        </View>
                     </View>
                     <View style={styles.SearchContainer}>
                         <View style={styles.search}>
@@ -345,32 +360,46 @@ export default function Home({ navigation }) {
                             <Text style={{ color: '#FED36A', fontSize: 18, fontWeight: '400', }}>See all</Text>
                         </TouchableOpacity>
                     </View>
-                    <View style={{ height: '30%' }} >
-                        <FlatList
-                            horizontal
-                            data={filteredCompletedData}
-                            renderItem={renderItem}
-                            keyExtractor={item => item.id}
-                            ListEmptyComponent={ListEmptyComponent}
-                            showsHorizontalScrollIndicator={false}
-                        />
+                    {loading ? (
+                    <View style={styles.loaderContainer}>
+                        <ActivityIndicator size="large" color="#FED36A" />
                     </View>
-                    <View style={styles.completetaskcon1}>
-                        <Text style={styles.completetask}>Ongoing Projects</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate('Seeallongoing')}>
-                            <Text style={{ color: '#FED36A', fontSize: 18, fontWeight: '400', }}>See all</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <View style={{ height: hp('29%'), width: '100%' }}>
-                        <FlatList
-                            data={filteredOngoingData}
-                            renderItem={ongoingrenderitem}
-                            keyExtractor={item => item.id}
-                            ListEmptyComponent={ListEmptyComponent}
-                            showsVerticalScrollIndicator={false}
+                ) : (
+                    
+                        <View style={{ height: '30%' }}>
+                            <FlatList
+                                horizontal
+                                data={filteredCompletedData}
+                                renderItem={renderItem}
+                                keyExtractor={item => item.id}
+                                ListEmptyComponent={ListEmptyComponent}
+                                showsHorizontalScrollIndicator={false}
+                            />
+                        </View>
+                    )}
 
-                        />
+                        <View style={styles.completetaskcon1}>
+                            <Text style={styles.completetask}>Ongoing Projects</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Seeallongoing')}>
+                                <Text style={{ color: '#FED36A', fontSize: 18, fontWeight: '400', }}>See all</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {loading ? (
+                    <View style={styles.loaderContainer}>
+                        <ActivityIndicator size="large" color="#FED36A" />
                     </View>
+                ) : (
+                        <View style={{ height: hp('29%'), width: '100%' }}>
+                            <FlatList
+                                data={filteredOngoingData}
+                                renderItem={ongoingrenderitem}
+                                keyExtractor={item => item.id}
+                                ListEmptyComponent={ListEmptyComponent}
+                                showsVerticalScrollIndicator={false}
+                            />
+                        </View>
+                    
+                )}
                     <Modal
                         visible={modalVisible}
                         transparent={true}
@@ -476,7 +505,7 @@ const styles = StyleSheet.create({
     },
     welcome: {
         color: '#FED36A',
-        fontSize: 12,
+        fontSize: wp('3.5%'),
         fontWeight: '500',
     },
     name: {
@@ -487,9 +516,10 @@ const styles = StyleSheet.create({
     },
     name1: {
         fontFamily: 'CustomFont',
-        fontSize: wp('4%'),
+        fontSize: wp('3%'),
         fontWeight: '600',
         color: '#fff',
+        marginLeft:wp('-12%'),
     },
     avatar: {
         width: 48,
@@ -719,5 +749,14 @@ const styles = StyleSheet.create({
         // justifyContent:'center',
         marginTop: hp('12%')
         // alignContent:'center',
+    },
+    refresh:{
+        marginTop:hp('1.5%'),
+        marginRight:wp('5%'),
+    },
+    loaderContainer:{
+        justifyContent:'center',
+        alignItems:'center',
+        height:hp('29%'),
     },
 });

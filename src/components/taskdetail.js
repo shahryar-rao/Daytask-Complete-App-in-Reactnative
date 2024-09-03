@@ -8,7 +8,7 @@ import CircularProgress from 'react-native-circular-progress-indicator';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { database } from '../../firebase';
+import { database,auth } from '../../firebase';
 import Checkbox from 'expo-checkbox';
 
 export default function Taskdetail({ navigation }) {
@@ -16,9 +16,17 @@ export default function Taskdetail({ navigation }) {
     const [modalVisible, setModalVisible] = useState(false);
     const [teamMembersModalVisible, setTeamMembersModalVisible] = useState(false);
     const [teamMembersData, setTeamMembersData] = useState([]);
+    const [progress, setProgress] = useState(0);
     const [subtaskName, setSubtaskName] = useState('');
     const [subtasks, setSubtasks] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+
+
+    const route = useRoute();
+    const { task } = route.params;
+    const teamMembers = task.teamMembers;
 
     useEffect(() => {
         const loadFonts = async () => {
@@ -32,48 +40,49 @@ export default function Taskdetail({ navigation }) {
         fetchSubtasks();
     }, []);
 
-    const route = useRoute();
-    const { task } = route.params;
-    const teamMembers = task.teamMembers;
-
-    const calculateProgress = () => {
+    const calculateProgress = (subtasks) => {
         if (subtasks.length === 0) return 0;
-    
+
         const completedCount = subtasks.filter(subtask => subtask.checked).length;
         return (completedCount / subtasks.length) * 100;
     };
 
     const handleAddSubtask = async () => {
         if (!subtaskName.trim()) {
-            alert("Please enter a subtask name.");
+            Alert.alert("Please enter a subtask name.");
             return;
         }
         setLoading(true);
-    
+        const currentUserId = auth.currentUser.uid;
         const taskRef = doc(database, 'tasks', task.id);
-    
+
         try {
             const docSnapshot = await getDoc(taskRef);
             const data = docSnapshot.data();
             const subtasks = data?.subtasks || [];
-    
+
             const newSubtask = {
                 name: subtaskName,
-                checked: false
+                checked: false,
+                createrId: currentUserId
             };
-    
+
             subtasks.push(newSubtask);
-    
-            const newProgress = calculateProgress();
+
+            const newProgress = calculateProgress(subtasks);
             await updateDoc(taskRef, {
                 subtasks: subtasks,
                 progress: newProgress
             });
-    
+
             setSubtaskName('');
             setModalVisible(false);
-            fetchSubtasks();
-    
+            setSubtasks(subtasks);
+            setProgress(newProgress);
+
+            await fetchSubtasks();
+
+
         } catch (error) {
             console.error("Error adding subtask: ", error);
         } finally {
@@ -86,7 +95,22 @@ export default function Taskdetail({ navigation }) {
         try {
             const docSnapshot = await getDoc(taskRef);
             const data = docSnapshot.data();
-            setSubtasks(data?.subtasks || []);
+            if (data?.subtasks) {
+                const subtasksWithNames = await Promise.all(data.subtasks.map(async (subtask) => {
+                    const userRef = doc(database, 'users', subtask.createrId);
+                    const userSnapshot = await getDoc(userRef);
+                    const userData = userSnapshot.data();
+                    const creatorName = userData.role === 'admin' ? 'Admin' : userData.name;
+
+                    return {
+                        ...subtask,
+                        creatorName: creatorName,
+                    };
+                }));
+                setSubtasks(subtasksWithNames);
+                setProgress(calculateProgress(subtasksWithNames));
+            }
+
         } catch (error) {
             console.error("Error fetching subtasks: ", error);
         }
@@ -94,15 +118,12 @@ export default function Taskdetail({ navigation }) {
 
     const handleCheckboxChange = async (index) => {
         const updatedSubtasks = [...subtasks];
-    
         updatedSubtasks[index] = {
             ...updatedSubtasks[index],
             checked: !updatedSubtasks[index].checked,
         };
-    
-        const newProgress = (updatedSubtasks.length === 0)
-            ? 0
-            : (updatedSubtasks.filter(subtask => subtask.checked).length / updatedSubtasks.length) * 100;
+
+        const newProgress = calculateProgress(updatedSubtasks);
 
         try {
             const taskRef = doc(database, 'tasks', task.id);
@@ -110,8 +131,10 @@ export default function Taskdetail({ navigation }) {
                 subtasks: updatedSubtasks,
                 progress: newProgress,
             });
-    
+
             setSubtasks(updatedSubtasks);
+            setProgress(newProgress);
+
         } catch (error) {
             console.error("Error updating task: ", error);
         }
@@ -120,7 +143,10 @@ export default function Taskdetail({ navigation }) {
     const renderItem = ({ item, index }) => {
         return (
             <View style={styles.task}>
+                <View style={{flexDirection:'column'}}>
                 <Text style={styles.tasktext}>{item.name}</Text>
+                <Text style={styles.Admin}>{item.creatorName}</Text>
+                </View>
                 <View style={styles.checkboxcont}>
                     <Checkbox
                         value={item.checked}
@@ -185,7 +211,7 @@ export default function Taskdetail({ navigation }) {
                     <Text style={styles.head}>Project Progress</Text>
                     <View>
                         <CircularProgress
-                            value={calculateProgress()}
+                            value={progress}
                             radius={30}
                             inActiveStrokeColor={'#fff'}
                             inActiveStrokeOpacity={0}
@@ -436,5 +462,10 @@ const styles = StyleSheet.create({
     teamMemberName: {
         fontSize: hp('2%'),
         color: '#000',
+    },
+    Admin:{
+        fontSize: hp('1.5%'),
+        color: 'silver',
+        marginLeft:wp('5%'),
     },
 });
