@@ -31,7 +31,7 @@ export default {
       "./assets/fonts"
     ],
     plugins: [
-      'expo-font' // Ensure this is a string, not a variable
+      'expo-font' 
     ],
     extra: {
       apiKey: process.env.API_KEY,
